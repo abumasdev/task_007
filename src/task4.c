@@ -15,12 +15,14 @@ int check_function_call(int bool);
 int callback_showall(void *, int, char **, char **);
 void remove_extreme_spaces_str(char *str);
 void delete_newline_stdin();
+void remove_newline_str(char *str);
+int parse_add_str(char *str, char *output_name, char *output_age, char *output_email);
 
 int main() {
-    enum commands command;
+    enum commands command = NONE;
     char command_str[COMMANDSTRSIZE] = "";
     do {
-        if (scanf("%s", command_str)) {
+        if (scanf("%15s", command_str)) {
             command = NONE;
             if (!strcmp(command_str, "SHOW")) command = SHOW;
             if (!strcmp(command_str, "SHOWALL")) command = SHOWALL;
@@ -77,16 +79,17 @@ void menu_operate(enum commands command) {
             break;
         case ADD:
             if (db != NULL) {
+                char param_str[STRSIZE] = "";
                 char name_str[STRSIZE] = "";
-                int age_val;
+                char age_str[STRSIZE] = "";
                 char email_str[STRSIZE] = "";
                 delete_newline_stdin();
-                if (scanf("%[^0-9]%d%s", name_str, &age_val, email_str)) {
-                    remove_extreme_spaces_str(name_str);
-                    remove_extreme_spaces_str(email_str);
+                fgets(param_str, STRSIZE, stdin);
+                // if (scanf("%127[^0-9]%d%s", name_str, &age_val, email_str)) {
+                if (parse_add_str(param_str, name_str, age_str, email_str)) {
                     char sql[SQLSIZE] = "";
-                    sprintf(sql, "INSERT INTO Students (Name, Age, email) VALUES ('%s', %d, '%s')", name_str,
-                            age_val, email_str);
+                    sprintf(sql, "INSERT INTO Students (Name, Age, email) VALUES ('%s', %s, '%s')", name_str,
+                            age_str, email_str);
                     dbres = sqlite3_exec(db, sql, 0, 0, &err_msg);
                     if (dbres != SQLITE_OK) {
                         printf("SQL error: %s\n", err_msg);
@@ -165,4 +168,42 @@ void remove_extreme_spaces_str(char *str) {
         }
         str[i - start] = '\0';
     }
+}
+
+void remove_newline_str(char *str) {
+    while (*str) {
+        if (*str == '\n') {
+            *str = ' ';
+        }
+        str++;
+    }
+}
+
+int parse_add_str(char *str, char *output_name, char *output_age, char *output_email) {
+    int age_pos = 0;
+    remove_newline_str(str);
+    for (int i = 0; str[i] != '\0'; i++) {
+        if ((age_pos == 0) && (strchr("0123456789", str[i]) != NULL) && (i > 0)) {
+            if (str[i - 1] == ' ') {
+                age_pos = i;
+                str[i - 1] = '\0';
+                strncpy(output_name, str, i);
+            }
+        }
+        if ((age_pos > 0) && (strchr("0123456789", str[i]) == NULL)) {
+            if (str[i] == ' ') {
+                str[i] = '\0';
+                strncpy(output_age, str + age_pos, i - age_pos);
+                strcpy(output_email, (str + i + 1));
+                break;
+            }
+        }
+    }
+    if (strlen(output_name)) remove_extreme_spaces_str(output_name);
+    if (strlen(output_age)) remove_extreme_spaces_str(output_age);
+    if (strlen(output_email)) remove_extreme_spaces_str(output_email);
+    // printf("name=%s, ", output_name);
+    // printf("age=%s, ", output_age);
+    // printf("email=%s\n", output_email);
+    return strlen(output_name) && strlen(output_age) && strlen(output_email);
 }

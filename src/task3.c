@@ -6,7 +6,7 @@ char* strhalf(char* str);
 
 int main() {
     char str[STRSIZE] = "";
-    if (scanf("%s", str)) {
+    if (scanf("%255s", str)) {
         while (strlen(str) > 1) {
             printf("%s\n", strhalf(str));
         }
